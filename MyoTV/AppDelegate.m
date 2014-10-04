@@ -21,6 +21,7 @@
     // Override point for customization after application launch.
     
     [TLMHub sharedHub];
+    [[TLMHub sharedHub] setShouldNotifyInBackground:YES];
     
     self.window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
     UINavigationController *nc = [[UINavigationController alloc] initWithRootViewController:[[ViewController alloc] init]];
@@ -36,12 +37,7 @@
 }
 
 - (void)applicationDidEnterBackground:(UIApplication *)application {
-    [[NSNotificationCenter defaultCenter] addObserver:self
-                                             selector:@selector(didReceivePoseChange:)
-                                                 name:TLMMyoDidReceivePoseChangedNotification
-                                               object:nil];
-
-    
+ 
 }
 
 - (void)applicationWillEnterForeground:(UIApplication *)application {
