@@ -46,72 +46,6 @@
     self.selectUrl = [baseUrl stringByAppendingString:@"select"];
     NSLog(@"%@", self.listUrl);
     
-    NSURL *list = [NSURL URLWithString:self.listUrl];
-    NSURL *down = [NSURL URLWithString:self.downUrl];
-    NSURL *up = [NSURL URLWithString:self.upUrl];
-    NSURL *select = [NSURL URLWithString:self.selectUrl];
-    
-    NSURLRequest *listRequest = [NSURLRequest requestWithURL:list];
-    NSURLRequest *downRequest = [NSURLRequest requestWithURL:down];
-    NSURLRequest *upRequest = [NSURLRequest requestWithURL:up];
-    NSURLRequest *selectRequest = [NSURLRequest requestWithURL:select];
-    
-    AFHTTPRequestOperation *operationList = [[AFHTTPRequestOperation alloc]initWithRequest:listRequest];
-    operationList.responseSerializer = [AFJSONResponseSerializer serializer];
-    
-    [operationList setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
-        NSLog(@"%@", responseObject);
-        
-    } failure:^(AFHTTPRequestOperation *operationList, NSError *error) {
-        
-        NSLog(@"Error Retrieving Weather");
-        
-    }];
-
-    [operationList start];
-    
-    AFHTTPRequestOperation *operationDown = [[AFHTTPRequestOperation alloc]initWithRequest:downRequest];
-    operationDown.responseSerializer = [AFJSONResponseSerializer serializer];
-    
-    [operationDown setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
-        NSLog(@"%@", responseObject);
-        
-    } failure:^(AFHTTPRequestOperation *operationDown, NSError *error) {
-        
-        NSLog(@"Error Retrieving Weather");
-        
-    }];
-    
-    [operationDown start];
-    
-    AFHTTPRequestOperation *operationUp = [[AFHTTPRequestOperation alloc]initWithRequest:upRequest];
-    operationUp.responseSerializer = [AFJSONResponseSerializer serializer];
-    
-    [operationUp setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
-        NSLog(@"%@", responseObject);
-        
-    } failure:^(AFHTTPRequestOperation *operationUp, NSError *error) {
-        
-        NSLog(@"Error Retrieving Weather");
-        
-    }];
-    
-    [operationUp start];
-    
-    AFHTTPRequestOperation *operationSelect = [[AFHTTPRequestOperation alloc]initWithRequest:selectRequest];
-    operationSelect.responseSerializer = [AFJSONResponseSerializer serializer];
-    
-    [operationSelect setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
-        NSLog(@"%@", responseObject);
-        
-    } failure:^(AFHTTPRequestOperation *operationList, NSError *error) {
-        
-        NSLog(@"Error Retrieving Weather");
-        
-    }];
-    
-    [operationSelect start];
-    
 }
 
 - (void)didReceiveMemoryWarning {
@@ -139,7 +73,22 @@
             NSLog(@"Fingers Spread");
             break;
         case TLMPoseTypeThumbToPinky:
-            NSLog(@"Thumb to Pinky");
+            NSLog(@"HELLO");
+            NSURL *list = [NSURL URLWithString:self.listUrl];
+            NSURLRequest *request = [NSURLRequest requestWithURL:list];
+            AFHTTPRequestOperation *operation = [[AFHTTPRequestOperation alloc]initWithRequest:request];
+            operation.responseSerializer = [AFJSONResponseSerializer serializer];
+            
+            [operation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
+                NSLog(@"%@", responseObject);
+                
+            } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+                
+                NSLog(@"Error Retrieving Weather");
+                
+            }];
+            
+            [operation start];
             break;
     }
     
