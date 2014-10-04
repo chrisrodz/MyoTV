@@ -12,4 +12,7 @@
 
 @property (strong, nonatomic) UIBarButtonItem *connect;
 
+
+-(void)didReceivePoseChange:(NSNotification *)notification;
+
 @end
