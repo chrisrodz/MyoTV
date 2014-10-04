@@ -8,6 +8,7 @@
 
 #import "ViewController.h"
 #import <MyoKit/MyoKit.h>
+
 #import <AVFoundation/AVFoundation.h>
 #import <AFNetworking/AFNetworking.h>
 
@@ -28,7 +29,10 @@
 @implementation ViewController
 - (void)viewDidLoad {
     [super viewDidLoad];
+
     self.navigationItem.title = @"MyoTV";
+    self.connect = [[UIBarButtonItem alloc] initWithTitle:@"Connect" style:UIBarButtonItemStylePlain target:self action:@selector(didTapConnect:)];
+    self.navigationItem.rightBarButtonItem = self.connect;
     
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(didReceiveAccelerometerEvent:)
@@ -39,6 +43,7 @@
                                              selector:@selector(didReceivePoseChange:)
                                                  name:TLMMyoDidReceivePoseChangedNotification
                                                object:nil];
+
     NSString *baseUrl = @"http://172.16.2.109:8080/remote/processKey?key=";
     self.listUrl = [baseUrl stringByAppendingString:@"list"];
     self.downUrl = [baseUrl stringByAppendingString:@"down"];
@@ -51,6 +56,12 @@
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];
     // Dispose of any resources that can be recreated.
+}
+
+- (void)didTapConnect:(id)sender {
+    UINavigationController *settingsController = [TLMSettingsViewController settingsInNavigationController];
+    
+    [self presentViewController:settingsController animated:YES completion:nil];
 }
 
 -(void)didReceiveAccelerometerEvent:(NSNotification *)notification {
@@ -97,5 +108,6 @@
 -(void)didReceivePoseChange:(NSNotification *)notification {
     
 }
+
 
 @end
