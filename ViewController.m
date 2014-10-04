@@ -65,6 +65,10 @@
 }
 
 -(void)didReceiveAccelerometerEvent:(NSNotification *)notification {
+    
+}
+
+-(void)didReceivePoseChange:(NSNotification *)notification {
     TLMPose *pose = notification.userInfo[kTLMKeyPose];
     switch (pose.type) {
         case TLMPoseTypeUnknown:
@@ -80,17 +84,14 @@
         case TLMPoseTypeWaveOut:
             NSLog(@"Wave Out");
             break;
-        case TLMPoseTypeFingersSpread:
-            NSLog(@"Fingers Spread");
-            break;
         case TLMPoseTypeThumbToPinky:
-            NSLog(@"HELLO");
+            NSLog(@"thumb/pinky");
             NSURL *list = [NSURL URLWithString:self.listUrl];
-            NSURLRequest *request = [NSURLRequest requestWithURL:list];
-            AFHTTPRequestOperation *operation = [[AFHTTPRequestOperation alloc]initWithRequest:request];
-            operation.responseSerializer = [AFJSONResponseSerializer serializer];
+            NSURLRequest *listRequest = [NSURLRequest requestWithURL:list];
+            AFHTTPRequestOperation *listOperation = [[AFHTTPRequestOperation alloc]initWithRequest:listRequest];
+            listOperation.responseSerializer = [AFJSONResponseSerializer serializer];
             
-            [operation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
+            [listOperation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
                 NSLog(@"%@", responseObject);
                 
             } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
@@ -99,13 +100,9 @@
                 
             }];
             
-            [operation start];
+            [listOperation start];
             break;
     }
-    
-}
-
--(void)didReceivePoseChange:(NSNotification *)notification {
     
 }
 
