@@ -20,6 +20,8 @@
 @property (strong, nonatomic) NSString *selectUrl;
 @property (strong, nonatomic) NSString *exitUrl;
 
+@property (strong, nonatomic) NSString *recentChange;
+
 @end
 
 @implementation ViewController
