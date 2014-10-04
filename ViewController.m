@@ -7,6 +7,8 @@
 //
 
 #import "ViewController.h"
+#import <MyoKit/MyoKit.h>
+#import <AVFoundation/AVFoundation.h>
 
 @interface ViewController ()
 
@@ -17,7 +19,17 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view from its nib.
-    self.navigationItem.title = @"AirParranda";
+    self.navigationItem.title = @"MyoTV";
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(didReceiveAccelerometerEvent:)
+                                                 name:TLMMyoDidReceiveAccelerometerEventNotification
+                                               object:nil];
+    // Posted when a new pose is available from a TLMMyo
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(didReceivePoseChange:)
+                                                 name:TLMMyoDidReceivePoseChangedNotification
+                                               object:nil];
 }
 
 - (void)didReceiveMemoryWarning {
@@ -25,14 +37,34 @@
     // Dispose of any resources that can be recreated.
 }
 
-/*
-#pragma mark - Navigation
-
-// In a storyboard-based application, you will often want to do a little preparation before navigation
-- (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
-    // Get the new view controller using [segue destinationViewController].
-    // Pass the selected object to the new view controller.
+-(void)didReceiveAccelerometerEvent:(NSNotification *)notification {
+    TLMPose *pose = notification.userInfo[kTLMKeyPose];
+    switch (pose.type) {
+        case TLMPoseTypeUnknown:
+        case TLMPoseTypeRest:
+            NSLog(@"Hello Myo");
+            break;
+        case TLMPoseTypeFist:
+            NSLog(@"Fist");
+            break;
+        case TLMPoseTypeWaveIn:
+            NSLog(@"Wave In");
+            break;
+        case TLMPoseTypeWaveOut:
+            NSLog(@"Wave Out");
+            break;
+        case TLMPoseTypeFingersSpread:
+            NSLog(@"Fingers Spread");
+            break;
+        case TLMPoseTypeThumbToPinky:
+            NSLog(@"Thumb to Pinky");
+            break;
+    }
+    
 }
-*/
+
+-(void)didReceivePoseChange:(NSNotification *)notification {
+    
+}
 
 @end
