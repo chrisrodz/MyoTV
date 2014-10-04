@@ -40,8 +40,9 @@
                                              selector:@selector(didReceivePoseChange:)
                                                  name:TLMMyoDidReceivePoseChangedNotification
                                                object:nil];
-
-    
+    ViewController *controller = [[ViewController alloc]init];
+    [controller viewDidLoad]; 
+ 
 }
 
 - (void)applicationWillEnterForeground:(UIApplication *)application {
