@@ -65,33 +65,85 @@
 }
 
 -(void)didReceiveAccelerometerEvent:(NSNotification *)notification {
+}
+
+-(void)didReceivePoseChange:(NSNotification *)notification {
     TLMPose *pose = notification.userInfo[kTLMKeyPose];
     switch (pose.type) {
         case TLMPoseTypeUnknown:
-        case TLMPoseTypeRest:
-            NSLog(@"Hello Myo");
+        case TLMPoseTypeRest: {
+            NSLog(@"Hello?");
             break;
-        case TLMPoseTypeFist:
+        }
+        case TLMPoseTypeFist: {
             NSLog(@"Fist");
+            NSURL *selectUrl = [NSURL URLWithString:self.selectUrl];
+            NSURLRequest *selectRequest = [NSURLRequest requestWithURL:selectUrl];
+            AFHTTPRequestOperation *selectOperation = [[AFHTTPRequestOperation alloc]initWithRequest:selectRequest];
+            selectOperation.responseSerializer = [AFJSONResponseSerializer serializer];
+            
+            [selectOperation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
+//                NSLog(@"%@", responseObject);
+                
+            } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+                
+                NSLog(@"Error Retrieving Weather");
+                
+            }];
+            
+            [selectOperation start];
+
             break;
-        case TLMPoseTypeWaveIn:
+        }
+        case TLMPoseTypeWaveIn: {
             NSLog(@"Wave In");
+            NSURL *upUrl = [NSURL URLWithString:self.upUrl];
+            NSURLRequest *upRequest = [NSURLRequest requestWithURL:upUrl];
+            AFHTTPRequestOperation *upOperation = [[AFHTTPRequestOperation alloc]initWithRequest:upRequest];
+            
+            upOperation.responseSerializer = [AFJSONResponseSerializer serializer];
+            
+            [upOperation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
+//                NSLog(@"%@", responseObject);
+                
+            } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+                
+                NSLog(@"Error Retrieving Weather");
+                
+            }];
+            
+            [upOperation start];
             break;
-        case TLMPoseTypeWaveOut:
+        }
+        case TLMPoseTypeWaveOut: {
             NSLog(@"Wave Out");
+            NSURL *downUrl = [NSURL URLWithString:self.downUrl];
+            NSURLRequest *downRequest = [NSURLRequest requestWithURL:downUrl];
+            AFHTTPRequestOperation *downOperation = [[AFHTTPRequestOperation alloc]initWithRequest:downRequest];
+            
+            downOperation.responseSerializer = [AFJSONResponseSerializer serializer];
+            
+            [downOperation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
+//                NSLog(@"%@", responseObject);
+                
+            } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+                
+                NSLog(@"Error Retrieving Weather");
+                
+            }];
+            
+            [downOperation start];
             break;
-        case TLMPoseTypeFingersSpread:
+        }
+        case TLMPoseTypeFingersSpread: {
             NSLog(@"Fingers Spread");
-            break;
-        case TLMPoseTypeThumbToPinky:
-            NSLog(@"HELLO");
             NSURL *list = [NSURL URLWithString:self.listUrl];
             NSURLRequest *request = [NSURLRequest requestWithURL:list];
             AFHTTPRequestOperation *operation = [[AFHTTPRequestOperation alloc]initWithRequest:request];
             operation.responseSerializer = [AFJSONResponseSerializer serializer];
             
             [operation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
-                NSLog(@"%@", responseObject);
+//                NSLog(@"%@", responseObject);
                 
             } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
                 
@@ -100,12 +152,15 @@
             }];
             
             [operation start];
+
             break;
+        }
+        case TLMPoseTypeThumbToPinky: {
+            NSLog(@"Pinky");
+            break;
+        }
     }
     
-}
-
--(void)didReceivePoseChange:(NSNotification *)notification {
     
 }
 
