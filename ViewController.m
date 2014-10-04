@@ -9,16 +9,25 @@
 #import "ViewController.h"
 #import <MyoKit/MyoKit.h>
 #import <AVFoundation/AVFoundation.h>
+#import <AFNetworking/AFNetworking.h>
 
 @interface ViewController ()
+
+@property (strong, nonatomic) NSString *listUrl;
+@property (strong, nonatomic) NSString *downUrl;
+@property (strong, nonatomic) NSString *upUrl;
+@property (strong, nonatomic) NSString *selectUrl;
+
+@property (strong, nonatomic) NSDictionary *JSONlist;
+@property (strong, nonatomic) NSDictionary *JSONdown;
+@property (strong, nonatomic) NSDictionary *JSONup;
+@property (strong, nonatomic) NSDictionary *JSONselect;
 
 @end
 
 @implementation ViewController
-
 - (void)viewDidLoad {
     [super viewDidLoad];
-    // Do any additional setup after loading the view from its nib.
     self.navigationItem.title = @"MyoTV";
     
     [[NSNotificationCenter defaultCenter] addObserver:self
@@ -30,6 +39,79 @@
                                              selector:@selector(didReceivePoseChange:)
                                                  name:TLMMyoDidReceivePoseChangedNotification
                                                object:nil];
+    NSString *baseUrl = @"http://172.16.2.109:8080/remote/processKey?key=";
+    self.listUrl = [baseUrl stringByAppendingString:@"list"];
+    self.downUrl = [baseUrl stringByAppendingString:@"down"];
+    self.upUrl = [baseUrl stringByAppendingString:@"up"];
+    self.selectUrl = [baseUrl stringByAppendingString:@"select"];
+    NSLog(@"%@", self.listUrl);
+    
+    NSURL *list = [NSURL URLWithString:self.listUrl];
+    NSURL *down = [NSURL URLWithString:self.downUrl];
+    NSURL *up = [NSURL URLWithString:self.upUrl];
+    NSURL *select = [NSURL URLWithString:self.selectUrl];
+    
+    NSURLRequest *listRequest = [NSURLRequest requestWithURL:list];
+    NSURLRequest *downRequest = [NSURLRequest requestWithURL:down];
+    NSURLRequest *upRequest = [NSURLRequest requestWithURL:up];
+    NSURLRequest *selectRequest = [NSURLRequest requestWithURL:select];
+    
+    AFHTTPRequestOperation *operationList = [[AFHTTPRequestOperation alloc]initWithRequest:listRequest];
+    operationList.responseSerializer = [AFJSONResponseSerializer serializer];
+    
+    [operationList setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
+        NSLog(@"%@", responseObject);
+        
+    } failure:^(AFHTTPRequestOperation *operationList, NSError *error) {
+        
+        NSLog(@"Error Retrieving Weather");
+        
+    }];
+
+    [operationList start];
+    
+    AFHTTPRequestOperation *operationDown = [[AFHTTPRequestOperation alloc]initWithRequest:downRequest];
+    operationDown.responseSerializer = [AFJSONResponseSerializer serializer];
+    
+    [operationDown setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
+        NSLog(@"%@", responseObject);
+        
+    } failure:^(AFHTTPRequestOperation *operationDown, NSError *error) {
+        
+        NSLog(@"Error Retrieving Weather");
+        
+    }];
+    
+    [operationDown start];
+    
+    AFHTTPRequestOperation *operationUp = [[AFHTTPRequestOperation alloc]initWithRequest:upRequest];
+    operationUp.responseSerializer = [AFJSONResponseSerializer serializer];
+    
+    [operationUp setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
+        NSLog(@"%@", responseObject);
+        
+    } failure:^(AFHTTPRequestOperation *operationUp, NSError *error) {
+        
+        NSLog(@"Error Retrieving Weather");
+        
+    }];
+    
+    [operationUp start];
+    
+    AFHTTPRequestOperation *operationSelect = [[AFHTTPRequestOperation alloc]initWithRequest:selectRequest];
+    operationSelect.responseSerializer = [AFJSONResponseSerializer serializer];
+    
+    [operationSelect setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
+        NSLog(@"%@", responseObject);
+        
+    } failure:^(AFHTTPRequestOperation *operationList, NSError *error) {
+        
+        NSLog(@"Error Retrieving Weather");
+        
+    }];
+    
+    [operationSelect start];
+    
 }
 
 - (void)didReceiveMemoryWarning {
