@@ -28,6 +28,10 @@
 
 @property (strong, nonatomic) TLMPose *currentPose;
 @property (nonatomic) double baseRollAngle;
+@property (nonatomic) double baseYawAngle;
+
+@property (strong, nonatomic) NSTimer *forwardTimer;
+@property (strong, nonatomic) NSTimer *rewindTimer;
 
 @end
 
@@ -62,6 +66,9 @@
 
     self.isRewinding = NO;
     self.isFastForwarding = NO;
+    
+    self.forwardTimer = [NSTimer timerWithTimeInterval:2 target:self selector:@selector(sendFastforward) userInfo:nil repeats:YES];
+    self.rewindTimer = [NSTimer timerWithTimeInterval:2 target:self selector:@selector(sendRewind) userInfo:nil repeats:YES];
 }
 
 - (void)didReceiveMemoryWarning {
@@ -82,51 +89,15 @@
     // Create Euler angles from the quaternion of the orientation.
     TLMEulerAngles *angles = [TLMEulerAngles anglesWithQuaternion:orientationEvent.quaternion];
     
-    if (self.currentPose.type == TLMPoseTypeFist) {
-        if (self.baseRollAngle == 300.0) {
-            self.baseRollAngle = angles.roll.degrees;
-        } else if (self.baseRollAngle + 10 < angles.roll.degrees && self.isFastForwarding == NO) {
-            NSLog(@"Fast forward");
-            NSURL *selectUrl = [NSURL URLWithString:self.rewUrl];
-            NSURLRequest *selectRequest = [NSURLRequest requestWithURL:selectUrl];
-            AFHTTPRequestOperation *selectOperation = [[AFHTTPRequestOperation alloc]initWithRequest:selectRequest];
-            selectOperation.responseSerializer = [AFJSONResponseSerializer serializer];
-            
-            [selectOperation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
-                //                NSLog(@"%@", responseObject);
-                
-            } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-                
-                NSLog(@"Error fast forwarding");
-                
-            }];
-            
-            [selectOperation start];
-            self.isFastForwarding = YES;
-        } else if (self.baseRollAngle > angles.roll.degrees + 10 && self.isRewinding == NO) {
-            NSLog(@"Rewind");
-            NSURL *selectUrl = [NSURL URLWithString:self.ffwdUrl];
-            NSURLRequest *selectRequest = [NSURLRequest requestWithURL:selectUrl];
-            AFHTTPRequestOperation *selectOperation = [[AFHTTPRequestOperation alloc]initWithRequest:selectRequest];
-            selectOperation.responseSerializer = [AFJSONResponseSerializer serializer];
-            
-            [selectOperation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
-                //                NSLog(@"%@", responseObject);
-                
-            } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-                
-                NSLog(@"Error rewinding");
-                
-            }];
-            
-            [selectOperation start];
-            
-            self.isRewinding = YES;
-        }
+    NSLog(@"%f", angles.yaw.degrees);
+    
+    if (self.isFastForwarding == NO) {
+        self.baseYawAngle = angles.yaw.degrees;
     } else {
-        self.baseRollAngle = 300.0;
-        self.isRewinding = NO;
-        self.isFastForwarding = NO;
+        if (angles.yaw.degrees < self.baseYawAngle - 30) {
+            [self sendFastforward];
+            self.baseYawAngle = angles.yaw.degrees;
+        }
     }
 }
 
@@ -137,29 +108,12 @@
 
     TLMPose *pose = notification.userInfo[kTLMKeyPose];
 
-    if (self.currentPose.type == TLMPoseTypeFist && pose.type != TLMPoseTypeFist && (self.isFastForwarding == YES || self.isRewinding == YES)) {
-        NSURL *selectUrl = [NSURL URLWithString:self.playUrl];
-        NSURLRequest *selectRequest = [NSURLRequest requestWithURL:selectUrl];
-        AFHTTPRequestOperation *selectOperation = [[AFHTTPRequestOperation alloc]initWithRequest:selectRequest];
-        selectOperation.responseSerializer = [AFJSONResponseSerializer serializer];
-        
-        [selectOperation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
-            //                NSLog(@"%@", responseObject);
-            
-        } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-            
-            NSLog(@"Error Playing");
-            
-        }];
-        
-        [selectOperation start];
-        self.isRewinding = NO;
+    if (self.currentPose.type == TLMPoseTypeWaveOut && pose.type != TLMPoseTypeWaveOut) {
         self.isFastForwarding = NO;
+        [self sendPlay];
     }
     
     self.currentPose = pose;
-    
-    
     
     switch (pose.type) {
         case TLMPoseTypeUnknown:
@@ -205,6 +159,7 @@
             }];
             
             [upOperation start];
+            
             break;
         }
         case TLMPoseTypeWaveOut: {
@@ -225,26 +180,13 @@
             }];
             
             [downOperation start];
+            
+            [NSTimer scheduledTimerWithTimeInterval:3 target:self selector:@selector(startFastForward) userInfo:nil repeats:NO];
+            
             break;
         }
         case TLMPoseTypeThumbToPinky: {
-            NSLog(@"thumb/pinky");
-            NSURL *exit = [NSURL URLWithString:self.exitUrl];
-            NSURLRequest *exitRequest = [NSURLRequest requestWithURL:exit];
-            AFHTTPRequestOperation *exitOperation = [[AFHTTPRequestOperation alloc]initWithRequest:exitRequest];
-            
-            exitOperation.responseSerializer = [AFJSONResponseSerializer serializer];
-            
-            [exitOperation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
-                //                NSLog(@"%@", responseObject);
-                
-            } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-                
-                NSLog(@"Error Retrieving Weather");
-                
-            }];
-            
-            [exitOperation start];
+            [NSTimer scheduledTimerWithTimeInterval:4 target:self selector:@selector(verifyPinky) userInfo:nil repeats:NO];
             break;
         }
         case TLMPoseTypeFingersSpread: {
@@ -270,5 +212,87 @@
     }
 }
 
+- (void)sendFastforward {
+    NSLog(@"Fast forward");
+    NSURL *selectUrl = [NSURL URLWithString:self.ffwdUrl];
+    NSURLRequest *selectRequest = [NSURLRequest requestWithURL:selectUrl];
+    AFHTTPRequestOperation *selectOperation = [[AFHTTPRequestOperation alloc]initWithRequest:selectRequest];
+    selectOperation.responseSerializer = [AFJSONResponseSerializer serializer];
+    
+    [selectOperation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
+        //                NSLog(@"%@", responseObject);
+        
+    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+        
+        NSLog(@"Error fast forwarding");
+        
+    }];
+    
+    [selectOperation start];
+}
+
+- (void)sendRewind {
+    NSLog(@"Rewind");
+    NSURL *selectUrl = [NSURL URLWithString:self.rewUrl];
+    NSURLRequest *selectRequest = [NSURLRequest requestWithURL:selectUrl];
+    AFHTTPRequestOperation *selectOperation = [[AFHTTPRequestOperation alloc]initWithRequest:selectRequest];
+    selectOperation.responseSerializer = [AFJSONResponseSerializer serializer];
+    
+    [selectOperation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
+        //                NSLog(@"%@", responseObject);
+        
+    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+        
+        NSLog(@"Error rewinding");
+        
+    }];
+    
+    [selectOperation start];
+}
+
+- (void)sendPlay {
+    NSURL *selectUrl = [NSURL URLWithString:self.playUrl];
+    NSURLRequest *selectRequest = [NSURLRequest requestWithURL:selectUrl];
+    AFHTTPRequestOperation *selectOperation = [[AFHTTPRequestOperation alloc]initWithRequest:selectRequest];
+    selectOperation.responseSerializer = [AFJSONResponseSerializer serializer];
+    
+    [selectOperation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
+        //                NSLog(@"%@", responseObject);
+        
+    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+        
+        NSLog(@"Error Playing");
+        
+    }];
+    
+    [selectOperation start];
+}
+
+- (void)verifyPinky {
+    if (self.currentPose.type == TLMPoseTypeThumbToPinky) {
+        NSLog(@"thumb/pinky");
+        NSURL *exit = [NSURL URLWithString:self.exitUrl];
+        NSURLRequest *exitRequest = [NSURLRequest requestWithURL:exit];
+        AFHTTPRequestOperation *exitOperation = [[AFHTTPRequestOperation alloc]initWithRequest:exitRequest];
+        
+        exitOperation.responseSerializer = [AFJSONResponseSerializer serializer];
+        
+        [exitOperation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
+            //                NSLog(@"%@", responseObject);
+            
+        } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+            
+            NSLog(@"Error Retrieving Weather");
+            
+        }];
+        
+        [exitOperation start];
+    }
+}
+
+- (void)startFastForward {
+    self.isFastForwarding = YES;
+    [self sendFastforward];
+}
 
 @end
