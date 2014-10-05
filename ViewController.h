@@ -11,6 +11,7 @@
 @interface ViewController : UIViewController <UITableViewDelegate, UITableViewDataSource>
 
 @property (strong, nonatomic) UIBarButtonItem *connect;
+@property (strong,nonatomic) UIBarButtonItem *gestures;
 @property (weak, nonatomic) IBOutlet UITableView *tableView;
 
 

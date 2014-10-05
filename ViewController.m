@@ -9,6 +9,7 @@
 #import "ViewController.h"
 #import <MyoKit/MyoKit.h>
 #import "CustomCell.h"
+#import "GesturesViewController.h"
 
 #import <AVFoundation/AVFoundation.h>
 #import <AFNetworking/AFNetworking.h>
@@ -42,8 +43,10 @@
 
     self.navigationItem.title = @"MyoTV";
     self.connect = [[UIBarButtonItem alloc] initWithTitle:@"Connect" style:UIBarButtonItemStylePlain target:self action:@selector(didTapConnect:)];
+    self.gestures = [[UIBarButtonItem alloc]initWithTitle:@"Gestures" style:UIBarButtonItemStylePlain target:self action:@selector(didTapGestures:)];
+    [self.navigationItem.leftBarButtonItem setTitle:@"Gestures"];
     self.navigationItem.rightBarButtonItem = self.connect;
-    
+    self.navigationItem.leftBarButtonItem = self.gestures;
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(didReceiveOrientationEvent:)
                                                  name:TLMMyoDidReceiveOrientationEventNotification
@@ -297,6 +300,14 @@
     [self sendFastforward];
 }
 
+- (void)didTapGestures:(id)sender {
+    GesturesViewController *gesturesViewController = [[GesturesViewController alloc]init];
+    
+    [self.navigationController pushViewController:gesturesViewController animated:NO];
+}
+
+
+#pragma mark TableView Delegates
 -(NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
     return 5;
