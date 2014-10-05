@@ -369,5 +369,29 @@
     return cell;
 }
 
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    AppDelegate *delegate = [UIApplication sharedApplication].delegate;
+    NSArray *temporary = [[NSArray alloc]init];
+    temporary = [delegate.playInfo valueForKey:@"updates"];
+    NSString *uniqueId = [[temporary objectAtIndex:indexPath.row] valueForKey:@"uniqueId"];
+    NSURL *startPlaybackURL = [NSURL URLWithString:[@"http://172.16.2.109:8080/dvr/play?uniqueId=" stringByAppendingString:uniqueId]];
+    NSURLRequest *startRequest = [NSURLRequest requestWithURL:startPlaybackURL];
+    AFHTTPRequestOperation *startOperation = [[AFHTTPRequestOperation alloc]initWithRequest:startRequest];
+    
+    startOperation.responseSerializer = [AFJSONResponseSerializer serializer];
+    
+    [startOperation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
+        //                NSLog(@"%@", responseObject);
+        
+    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+        
+        NSLog(@"Error Retrieving Weather");
+        
+    }];
+    
+    [startOperation start];
+
+    
+}
 
 @end
