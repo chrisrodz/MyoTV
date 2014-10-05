@@ -8,6 +8,7 @@
 
 #import "ViewController.h"
 #import <MyoKit/MyoKit.h>
+#import "CustomCell.h"
 
 #import <AVFoundation/AVFoundation.h>
 #import <AFNetworking/AFNetworking.h>
@@ -175,6 +176,26 @@
             break;
         }
     }
+}
+
+-(NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
+{
+    return 5;
+}
+
+-(NSInteger)numberOfSectionsInTableView:(UITableView *)tableView{
+    return 1;
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    [self.tableView registerNib:[UINib nibWithNibName:@"CustomCell" bundle:nil] forCellReuseIdentifier:@"Cell"];
+    
+    CustomCell * cell  = [tableView dequeueReusableCellWithIdentifier:@"Cell"];
+    
+    NSLog(@"%@", cell);
+    
+    return cell;
 }
 
 

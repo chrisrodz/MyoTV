@@ -8,9 +8,10 @@
 
 #import <UIKit/UIKit.h>
 
-@interface ViewController : UIViewController
+@interface ViewController : UIViewController <UITableViewDelegate, UITableViewDataSource>
 
 @property (strong, nonatomic) UIBarButtonItem *connect;
+@property (weak, nonatomic) IBOutlet UITableView *tableView;
 
 
 -(void)didReceivePoseChange:(NSNotification *)notification;
