@@ -10,6 +10,7 @@
 #import <MyoKit/MyoKit.h>
 #import "CustomCell.h"
 #import "AppDelegate.h"
+#import "GesturesViewController.h"
 
 #import <AVFoundation/AVFoundation.h>
 #import <AFNetworking/AFNetworking.h>
@@ -50,11 +51,12 @@
 
     self.navigationItem.title = @"MyoTV";
     self.connect = [[UIBarButtonItem alloc] initWithTitle:@"Connect" style:UIBarButtonItemStylePlain target:self action:@selector(didTapConnect:)];
+    self.gestures = [[UIBarButtonItem alloc]initWithTitle:@"Gestures" style:UIBarButtonItemStylePlain target:self action:@selector(didTapGestures:)];
+    [self.navigationItem.leftBarButtonItem setTitle:@"Gestures"];
     self.navigationItem.rightBarButtonItem = self.connect;
-    
-    self.refresh = [[UIBarButtonItem alloc]initWithTitle:@"Refresh" style:UIBarButtonItemStylePlain target:self action:@selector(didTapRefresh:)];
-    self.navigationItem.leftBarButtonItem = self.refresh;
-    
+    //self.refresh = [[UIBarButtonItem alloc]initWithTitle:@"Refresh" style:UIBarButtonItemStylePlain target:self action:@selector(didTapRefresh:)];
+    //self.navigationItem.leftBarButtonItem = self.refresh;
+    self.navigationItem.leftBarButtonItem = self.gestures;
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(didReceiveOrientationEvent:)
                                                  name:TLMMyoDidReceiveOrientationEventNotification
@@ -80,6 +82,16 @@
 
     self.isRewinding = NO;
     self.isFastForwarding = NO;
+    
+    // Initialize the refresh control.
+    self.refreshControl = [[UIRefreshControl alloc] init];
+    self.refreshControl.backgroundColor = [UIColor colorWithRed:0.0 green:222.0 blue:242.0 alpha:100.0];
+    self.refreshControl.tintColor = [UIColor whiteColor];
+    [self.refreshControl addTarget:self
+                            action:@selector(didTapRefresh:)
+                  forControlEvents:UIControlEventValueChanged];
+    [self.tableView addSubview:self.refreshControl];
+
 
 }
 
@@ -95,11 +107,13 @@
 }
 
 - (void)didTapRefresh:(id)sender {
-    [self viewDidLoad];
+    //[self viewDidLoad];
     AppDelegate *del = [UIApplication sharedApplication].delegate;
     NSLog(@"DICT: %@", self.playListInfo);
     NSLog(@"DICT 2: %@", del.playInfo);
     [self.tableView reloadData];
+    [self.refreshControl endRefreshing];
+    
 }
 
 -(void)viewWillAppear:(BOOL)animated{
@@ -334,6 +348,19 @@
     }
 }
 
+- (void)startFastForward {
+    self.isFastForwarding = YES;
+    [self sendFastforward];
+}
+
+- (void)didTapGestures:(id)sender {
+    GesturesViewController *gesturesViewController = [[GesturesViewController alloc]init];
+    
+    [self.navigationController pushViewController:gesturesViewController animated:NO];
+}
+
+
+#pragma mark TableView Delegates
 -(NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
     AppDelegate *del = [UIApplication sharedApplication].delegate;
@@ -343,7 +370,14 @@
 }
 
 -(NSInteger)numberOfSectionsInTableView:(UITableView *)tableView{
-    return 1;
+    
+    AppDelegate *del = [UIApplication sharedApplication].delegate;
+    
+    if (del.playInfo) {
+        return 1;
+    }
+    
+    return 0;
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
