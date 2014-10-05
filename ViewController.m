@@ -31,9 +31,6 @@
 @property (nonatomic) double baseRollAngle;
 @property (nonatomic) double baseYawAngle;
 
-@property (strong, nonatomic) NSTimer *forwardTimer;
-@property (strong, nonatomic) NSTimer *rewindTimer;
-
 @end
 
 @implementation ViewController
@@ -67,9 +64,6 @@
 
     self.isRewinding = NO;
     self.isFastForwarding = NO;
-    
-    self.forwardTimer = [NSTimer timerWithTimeInterval:2 target:self selector:@selector(sendFastforward) userInfo:nil repeats:YES];
-    self.rewindTimer = [NSTimer timerWithTimeInterval:2 target:self selector:@selector(sendRewind) userInfo:nil repeats:YES];
 }
 
 - (void)didReceiveMemoryWarning {
@@ -90,13 +84,16 @@
     // Create Euler angles from the quaternion of the orientation.
     TLMEulerAngles *angles = [TLMEulerAngles anglesWithQuaternion:orientationEvent.quaternion];
     
-    NSLog(@"%f", angles.yaw.degrees);
-    
-    if (self.isFastForwarding == NO) {
+    if (self.isFastForwarding == NO && self.isRewinding == NO) {
         self.baseYawAngle = angles.yaw.degrees;
-    } else {
+    } else if (self.isFastForwarding) {
         if (angles.yaw.degrees < self.baseYawAngle - 30) {
             [self sendFastforward];
+            self.baseYawAngle = angles.yaw.degrees;
+        }
+    } else if (self.isRewinding) {
+        if (angles.yaw.degrees > self.baseYawAngle + 30) {
+            [self sendRewind];
             self.baseYawAngle = angles.yaw.degrees;
         }
     }
@@ -108,9 +105,10 @@
 -(void)didReceivePoseChange:(NSNotification *)notification {
 
     TLMPose *pose = notification.userInfo[kTLMKeyPose];
-
-    if (self.currentPose.type == TLMPoseTypeWaveOut && pose.type != TLMPoseTypeWaveOut) {
+    
+    if (self.isRewinding == YES || self.isFastForwarding == YES) {
         self.isFastForwarding = NO;
+        self.isRewinding = NO;
         [self sendPlay];
     }
     
@@ -161,6 +159,8 @@
             
             [upOperation start];
             
+            [NSTimer scheduledTimerWithTimeInterval:2.0 target:self selector:@selector(startRewind:) userInfo:nil repeats:NO];
+            
             break;
         }
         case TLMPoseTypeWaveOut: {
@@ -182,12 +182,12 @@
             
             [downOperation start];
             
-            [NSTimer scheduledTimerWithTimeInterval:3 target:self selector:@selector(startFastForward) userInfo:nil repeats:NO];
+            [NSTimer scheduledTimerWithTimeInterval:2.0 target:self selector:@selector(startFastForward:) userInfo:nil repeats:NO];
             
             break;
         }
         case TLMPoseTypeThumbToPinky: {
-            [NSTimer scheduledTimerWithTimeInterval:4 target:self selector:@selector(verifyPinky) userInfo:nil repeats:NO];
+            [NSTimer scheduledTimerWithTimeInterval:4.0 target:self selector:@selector(verifyPinky) userInfo:nil repeats:NO];
             break;
         }
         case TLMPoseTypeFingersSpread: {
@@ -213,6 +213,12 @@
     }
 }
 
+- (void)startFastForward:(id) sender {
+    if (self.currentPose.type == TLMPoseTypeWaveOut) {
+        self.isFastForwarding = YES;
+        [self sendFastforward];
+    }
+}
 
 - (void)sendFastforward {
     NSLog(@"Fast forward");
@@ -231,6 +237,13 @@
     }];
     
     [selectOperation start];
+}
+
+- (void)startRewind:(id) sender {
+    if (self.currentPose.type == TLMPoseTypeWaveIn) {
+        self.isRewinding = YES;
+        [self sendRewind];
+    }
 }
 
 - (void)sendRewind {
@@ -290,11 +303,6 @@
         
         [exitOperation start];
     }
-}
-
-- (void)startFastForward {
-    self.isFastForwarding = YES;
-    [self sendFastforward];
 }
 
 -(NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
