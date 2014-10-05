@@ -9,6 +9,7 @@
 #import "AppDelegate.h"
 #import "ViewController.h"
 #import <MyoKit/MyoKit.h>
+#import <AFNetworking/AFNetworking.h>
 
 @interface AppDelegate ()
 
@@ -22,6 +23,27 @@
     
     [TLMHub sharedHub];
     [[TLMHub sharedHub] setShouldNotifyInBackground:YES];
+    
+    ViewController *controller = [ViewController sharedManager];
+    NSString *getBaseURL = @"http://172.16.2.109:8080/dvr/playList?action=";
+    controller.playList = [getBaseURL stringByAppendingString:@"get"];
+    NSURL *getListUrl = [NSURL URLWithString:controller.playList];
+    NSURLRequest *getListRequest = [NSURLRequest requestWithURL:getListUrl];
+    AFHTTPRequestOperation *getListOperation = [[AFHTTPRequestOperation alloc]initWithRequest:getListRequest];
+    getListOperation.responseSerializer = [AFJSONResponseSerializer serializer];
+    
+    [getListOperation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
+        NSLog(@"HIZO EL GET en el delegate");
+        self.playInfo = responseObject;
+        
+    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+        
+        NSLog(@"Error get delegate");
+        
+    }];
+    
+    [getListOperation start];
+    
     
     self.window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
     UINavigationController *nc = [[UINavigationController alloc] initWithRootViewController:[[ViewController alloc] init]];

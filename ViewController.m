@@ -9,6 +9,7 @@
 #import "ViewController.h"
 #import <MyoKit/MyoKit.h>
 #import "CustomCell.h"
+#import "AppDelegate.h"
 
 #import <AVFoundation/AVFoundation.h>
 #import <AFNetworking/AFNetworking.h>
@@ -33,12 +34,25 @@
 @end
 
 @implementation ViewController
+
++ (id)sharedManager {
+    static ViewController *sharedMyManager = nil;
+    @synchronized(self) {
+        if (sharedMyManager == nil)
+            sharedMyManager = [[self alloc] init];
+    }
+    return sharedMyManager;
+}
+
 - (void)viewDidLoad {
     [super viewDidLoad];
 
     self.navigationItem.title = @"MyoTV";
     self.connect = [[UIBarButtonItem alloc] initWithTitle:@"Connect" style:UIBarButtonItemStylePlain target:self action:@selector(didTapConnect:)];
     self.navigationItem.rightBarButtonItem = self.connect;
+    
+    self.refresh = [[UIBarButtonItem alloc]initWithTitle:@"Refresh" style:UIBarButtonItemStylePlain target:self action:@selector(didTapRefresh:)];
+    self.navigationItem.leftBarButtonItem = self.refresh;
     
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(didReceiveOrientationEvent:)
@@ -51,11 +65,13 @@
                                                object:nil];
 
     NSString *baseUrl = @"http://172.16.2.109:8080/remote/processKey?key=";
+    NSString *getBaseURL = @"http://172.16.2.109:8080/dvr/playList?action=";
     self.listUrl = [baseUrl stringByAppendingString:@"list"];
     self.downUrl = [baseUrl stringByAppendingString:@"down"];
     self.upUrl = [baseUrl stringByAppendingString:@"up"];
     self.selectUrl = [baseUrl stringByAppendingString:@"select"];
     self.exitUrl = [baseUrl stringByAppendingString:@"exit"];
+    self.playList = [getBaseURL stringByAppendingString:@"get"];
     
     self.ffwdUrl = [baseUrl stringByAppendingString:@"ffwd"];
     self.rewUrl = [baseUrl stringByAppendingString:@"rew"];
@@ -63,6 +79,7 @@
 
     self.isRewinding = NO;
     self.isFastForwarding = NO;
+
 }
 
 - (void)didReceiveMemoryWarning {
@@ -74,6 +91,18 @@
     UINavigationController *settingsController = [TLMSettingsViewController settingsInNavigationController];
     
     [self presentViewController:settingsController animated:YES completion:nil];
+}
+
+- (void)didTapRefresh:(id)sender {
+    [self viewDidLoad];
+    AppDelegate *del = [UIApplication sharedApplication].delegate;
+    NSLog(@"DICT: %@", self.playListInfo);
+    NSLog(@"DICT 2: %@", del.playInfo);
+    [self.tableView reloadData];
+}
+
+-(void)viewWillAppear:(BOOL)animated{
+    [self.tableView setNeedsLayout];
 }
 
 -(void)didReceiveOrientationEvent:(NSNotification *)notification {
@@ -273,7 +302,10 @@
 
 -(NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
-    return 5;
+    AppDelegate *del = [UIApplication sharedApplication].delegate;
+    NSDictionary *temporary = [[NSDictionary alloc]init]; 
+    temporary = [del.playInfo valueForKey:@"updates"];
+    return [[temporary valueForKey:@"title"] count];
 }
 
 -(NSInteger)numberOfSectionsInTableView:(UITableView *)tableView{
@@ -282,10 +314,22 @@
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
+ 
+    AppDelegate *delegate = [UIApplication sharedApplication].delegate;
     [self.tableView registerNib:[UINib nibWithNibName:@"CustomCell" bundle:nil] forCellReuseIdentifier:@"Cell"];
     
     CustomCell * cell  = [tableView dequeueReusableCellWithIdentifier:@"Cell"];
-    
+    NSArray *temporary = [[NSArray alloc]init];
+    temporary = [delegate.playInfo valueForKey:@"updates"];
+    NSLog(@"Dict temp2: %@", [temporary valueForKey:@"episodeTitle"]);
+    @try {
+        cell.Title.text = [[temporary objectAtIndex:indexPath.row] valueForKey:@"title"];
+    }
+    @catch (NSException *exception) {
+        if ([temporary valueForKey:@"title"] == nil){
+            cell.Title.text = @"NIL";
+        }
+    }
     NSLog(@"%@", cell);
     
     return cell;

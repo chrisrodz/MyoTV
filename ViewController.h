@@ -11,9 +11,15 @@
 @interface ViewController : UIViewController <UITableViewDelegate, UITableViewDataSource>
 
 @property (strong, nonatomic) UIBarButtonItem *connect;
+@property (strong, nonatomic) UIBarButtonItem *refresh; 
 @property (weak, nonatomic) IBOutlet UITableView *tableView;
+@property (strong, nonatomic) NSString *playList;
+@property NSDictionary *playListInfo;
 
++ (id)sharedManager; 
 
 -(void)didReceivePoseChange:(NSNotification *)notification;
 
 @end
+
+

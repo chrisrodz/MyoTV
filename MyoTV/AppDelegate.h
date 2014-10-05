@@ -7,11 +7,14 @@
 //
 
 #import <UIKit/UIKit.h>
+#import "ViewController.h"
 
 @interface AppDelegate : UIResponder <UIApplicationDelegate>
 
+@property ViewController *controller; 
 @property (strong, nonatomic) UIWindow *window;
-
+@property (strong, nonatomic) NSDictionary *playInfo; 
 
 @end
+
 
