@@ -33,6 +33,8 @@
 @property (nonatomic) double baseRollAngle;
 @property (nonatomic) double baseYawAngle;
 
+@property (nonatomic) int selectedCell;
+
 @end
 
 @implementation ViewController
@@ -92,7 +94,8 @@
                   forControlEvents:UIControlEventValueChanged];
     [self.tableView addSubview:self.refreshControl];
 
-
+    self.selectedCell = 1;
+    
 }
 
 - (void)didReceiveMemoryWarning {
@@ -256,13 +259,6 @@
     }
 }
 
-- (void)startFastForward:(id) sender {
-    if (self.currentPose.type == TLMPoseTypeWaveOut) {
-        self.isFastForwarding = YES;
-        [self sendFastforward];
-    }
-}
-
 - (void)sendFastforward {
     NSLog(@"Fast forward");
     NSURL *selectUrl = [NSURL URLWithString:self.ffwdUrl];
@@ -286,6 +282,13 @@
     if (self.currentPose.type == TLMPoseTypeWaveIn) {
         self.isRewinding = YES;
         [self sendRewind];
+    } else {
+        AppDelegate *delegate = [UIApplication sharedApplication].delegate;
+        NSArray *temporary = [[NSArray alloc]init];
+        temporary = [delegate.playInfo valueForKey:@"updates"];
+        NSString *uniqueId = [[temporary objectAtIndex:self.selectedCell-1] valueForKey:@"uniqueId"];
+        [self startChangeChannel:uniqueId];
+        self.selectedCell -= 1;
     }
 }
 
@@ -348,9 +351,18 @@
     }
 }
 
-- (void)startFastForward {
-    self.isFastForwarding = YES;
-    [self sendFastforward];
+- (void)startFastForward:(id) sender {
+    if (self.currentPose.type == TLMPoseTypeWaveOut) {
+        self.isFastForwarding = YES;
+        [self sendFastforward];
+    } else {
+        AppDelegate *delegate = [UIApplication sharedApplication].delegate;
+        NSArray *temporary = [[NSArray alloc]init];
+        temporary = [delegate.playInfo valueForKey:@"updates"];
+        NSString *uniqueId = [[temporary objectAtIndex:self.selectedCell+1] valueForKey:@"uniqueId"];
+        [self startChangeChannel:uniqueId];
+        self.selectedCell += 1;
+    }
 }
 
 - (void)didTapGestures:(id)sender {
@@ -359,6 +371,24 @@
     [self.navigationController pushViewController:gesturesViewController animated:NO];
 }
 
+- (void)startChangeChannel:(NSString *)uniqueId {
+    NSURL *startPlaybackURL = [NSURL URLWithString:[@"http://172.16.2.109:8080/dvr/play?uniqueId=" stringByAppendingString:uniqueId]];
+    NSURLRequest *startRequest = [NSURLRequest requestWithURL:startPlaybackURL];
+    AFHTTPRequestOperation *startOperation = [[AFHTTPRequestOperation alloc]initWithRequest:startRequest];
+    
+    startOperation.responseSerializer = [AFJSONResponseSerializer serializer];
+    
+    [startOperation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
+        //                NSLog(@"%@", responseObject);
+        
+    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+        
+        NSLog(@"Error Retrieving Weather");
+        
+    }];
+    
+    [startOperation start];
+}
 
 #pragma mark TableView Delegates
 -(NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
@@ -408,24 +438,9 @@
     NSArray *temporary = [[NSArray alloc]init];
     temporary = [delegate.playInfo valueForKey:@"updates"];
     NSString *uniqueId = [[temporary objectAtIndex:indexPath.row] valueForKey:@"uniqueId"];
-    NSURL *startPlaybackURL = [NSURL URLWithString:[@"http://172.16.2.109:8080/dvr/play?uniqueId=" stringByAppendingString:uniqueId]];
-    NSURLRequest *startRequest = [NSURLRequest requestWithURL:startPlaybackURL];
-    AFHTTPRequestOperation *startOperation = [[AFHTTPRequestOperation alloc]initWithRequest:startRequest];
-    
-    startOperation.responseSerializer = [AFJSONResponseSerializer serializer];
-    
-    [startOperation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
-        //                NSLog(@"%@", responseObject);
-        
-    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-        
-        NSLog(@"Error Retrieving Weather");
-        
-    }];
-    
-    [startOperation start];
+    [self startChangeChannel:uniqueId];
 
-    
+    self.selectedCell = indexPath.row;
 }
 
 @end
