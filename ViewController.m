@@ -21,7 +21,14 @@
 @property (strong, nonatomic) NSString *selectUrl;
 @property (strong, nonatomic) NSString *exitUrl;
 
-@property (strong, nonatomic) NSString *recentChange;
+@property (strong, nonatomic) NSString *ffwdUrl;
+@property (strong, nonatomic) NSString *rewUrl;
+@property (strong, nonatomic) NSString *playUrl;
+@property (nonatomic) BOOL isFastForwarding;
+@property (nonatomic) BOOL isRewinding;
+
+@property (strong, nonatomic) TLMPose *currentPose;
+@property (nonatomic) double baseRollAngle;
 
 @end
 
@@ -34,8 +41,8 @@
     self.navigationItem.rightBarButtonItem = self.connect;
     
     [[NSNotificationCenter defaultCenter] addObserver:self
-                                             selector:@selector(didReceiveAccelerometerEvent:)
-                                                 name:TLMMyoDidReceiveAccelerometerEventNotification
+                                             selector:@selector(didReceiveOrientationEvent:)
+                                                 name:TLMMyoDidReceiveOrientationEventNotification
                                                object:nil];
     // Posted when a new pose is available from a TLMMyo
     [[NSNotificationCenter defaultCenter] addObserver:self
@@ -49,8 +56,13 @@
     self.upUrl = [baseUrl stringByAppendingString:@"up"];
     self.selectUrl = [baseUrl stringByAppendingString:@"select"];
     self.exitUrl = [baseUrl stringByAppendingString:@"exit"];
-    NSLog(@"%@", self.listUrl);
     
+    self.ffwdUrl = [baseUrl stringByAppendingString:@"ffwd"];
+    self.rewUrl = [baseUrl stringByAppendingString:@"rew"];
+    self.playUrl = [baseUrl stringByAppendingString:@"play"];
+
+    self.isRewinding = NO;
+    self.isFastForwarding = NO;
 }
 
 - (void)didReceiveMemoryWarning {
@@ -64,15 +76,96 @@
     [self presentViewController:settingsController animated:YES completion:nil];
 }
 
+-(void)didReceiveOrientationEvent:(NSNotification *)notification {
+    // Retrieve the orientation from the NSNotification's userInfo with the kTLMKeyOrientationEvent key.
+    TLMOrientationEvent *orientationEvent = notification.userInfo[kTLMKeyOrientationEvent];
+    
+    // Create Euler angles from the quaternion of the orientation.
+    TLMEulerAngles *angles = [TLMEulerAngles anglesWithQuaternion:orientationEvent.quaternion];
+    
+    if (self.currentPose.type == TLMPoseTypeFist) {
+        if (self.baseRollAngle == 300.0) {
+            self.baseRollAngle = angles.roll.degrees;
+        } else if (self.baseRollAngle + 10 < angles.roll.degrees && self.isFastForwarding == NO) {
+            NSLog(@"Fast forward");
+            NSURL *selectUrl = [NSURL URLWithString:self.rewUrl];
+            NSURLRequest *selectRequest = [NSURLRequest requestWithURL:selectUrl];
+            AFHTTPRequestOperation *selectOperation = [[AFHTTPRequestOperation alloc]initWithRequest:selectRequest];
+            selectOperation.responseSerializer = [AFJSONResponseSerializer serializer];
+            
+            [selectOperation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
+                //                NSLog(@"%@", responseObject);
+                
+            } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+                
+                NSLog(@"Error fast forwarding");
+                
+            }];
+            
+            [selectOperation start];
+            self.isFastForwarding = YES;
+        } else if (self.baseRollAngle > angles.roll.degrees + 10 && self.isRewinding == NO) {
+            NSLog(@"Rewind");
+            NSURL *selectUrl = [NSURL URLWithString:self.ffwdUrl];
+            NSURLRequest *selectRequest = [NSURLRequest requestWithURL:selectUrl];
+            AFHTTPRequestOperation *selectOperation = [[AFHTTPRequestOperation alloc]initWithRequest:selectRequest];
+            selectOperation.responseSerializer = [AFJSONResponseSerializer serializer];
+            
+            [selectOperation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
+                //                NSLog(@"%@", responseObject);
+                
+            } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+                
+                NSLog(@"Error rewinding");
+                
+            }];
+            
+            [selectOperation start];
+            
+            self.isRewinding = YES;
+        }
+    } else {
+        self.baseRollAngle = 300.0;
+        self.isRewinding = NO;
+        self.isFastForwarding = NO;
+    }
+}
+
 -(void)didReceiveAccelerometerEvent:(NSNotification *)notification {
 }
 
 -(void)didReceivePoseChange:(NSNotification *)notification {
+
     TLMPose *pose = notification.userInfo[kTLMKeyPose];
+
+    if (self.currentPose.type == TLMPoseTypeFist && pose.type != TLMPoseTypeFist && (self.isFastForwarding == YES || self.isRewinding == YES)) {
+        NSURL *selectUrl = [NSURL URLWithString:self.playUrl];
+        NSURLRequest *selectRequest = [NSURLRequest requestWithURL:selectUrl];
+        AFHTTPRequestOperation *selectOperation = [[AFHTTPRequestOperation alloc]initWithRequest:selectRequest];
+        selectOperation.responseSerializer = [AFJSONResponseSerializer serializer];
+        
+        [selectOperation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
+            //                NSLog(@"%@", responseObject);
+            
+        } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+            
+            NSLog(@"Error Playing");
+            
+        }];
+        
+        [selectOperation start];
+        self.isRewinding = NO;
+        self.isFastForwarding = NO;
+    }
+    
+    self.currentPose = pose;
+    
+    
+    
     switch (pose.type) {
         case TLMPoseTypeUnknown:
         case TLMPoseTypeRest: {
-            NSLog(@"Hello?");
+            NSLog(@"Rest");
             break;
         }
         case TLMPoseTypeFist: {
