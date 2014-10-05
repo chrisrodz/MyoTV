@@ -35,6 +35,9 @@
 
 @property (nonatomic) int selectedCell;
 
+@property (strong, nonatomic) NSString *currentTitlePlaying;
+@property (nonatomic) BOOL isInListMode;
+
 @end
 
 @implementation ViewController
@@ -95,6 +98,8 @@
     [self.tableView addSubview:self.refreshControl];
 
     self.selectedCell = 1;
+    self.isInListMode = NO;
+    self.currentTitlePlaying = [[NSString alloc] init];
     
 }
 
@@ -183,6 +188,8 @@
             }];
             
             [selectOperation start];
+            
+            [self verifyState];
 
             break;
         }
@@ -207,6 +214,8 @@
             
             [NSTimer scheduledTimerWithTimeInterval:2.0 target:self selector:@selector(startRewind:) userInfo:nil repeats:NO];
             
+            [self verifyState];
+            
             break;
         }
         case TLMPoseTypeWaveOut: {
@@ -230,10 +239,13 @@
             
             [NSTimer scheduledTimerWithTimeInterval:2.0 target:self selector:@selector(startFastForward:) userInfo:nil repeats:NO];
             
+//            [self verifyState];
+            
             break;
         }
         case TLMPoseTypeThumbToPinky: {
             [NSTimer scheduledTimerWithTimeInterval:4.0 target:self selector:@selector(verifyPinky) userInfo:nil repeats:NO];
+            [self verifyState];
             break;
         }
         case TLMPoseTypeFingersSpread: {
@@ -254,6 +266,27 @@
             }];
             
             [listOperation start];
+            
+            self.isInListMode = YES;
+            
+            NSURL *get = [NSURL URLWithString:@"http://172.16.2.109:8080/tv/getTunedPrivate"];
+            NSURLRequest *getRequest = [NSURLRequest requestWithURL:get];
+            AFHTTPRequestOperation *getOperation = [[AFHTTPRequestOperation alloc]initWithRequest:getRequest];
+            
+            getOperation.responseSerializer = [AFJSONResponseSerializer serializer];
+            
+            [getOperation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
+                self.currentTitlePlaying = [responseObject valueForKey:@"uniqueId"];
+                
+                
+            } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+                
+                NSLog(@"Error Retrieving Weather");
+                
+            }];
+            
+            [getOperation start];
+            
             break;
         }
     }
@@ -279,16 +312,18 @@
 }
 
 - (void)startRewind:(id) sender {
-    if (self.currentPose.type == TLMPoseTypeWaveIn) {
-        self.isRewinding = YES;
-        [self sendRewind];
-    } else {
-        AppDelegate *delegate = [UIApplication sharedApplication].delegate;
-        NSArray *temporary = [[NSArray alloc]init];
-        temporary = [delegate.playInfo valueForKey:@"updates"];
-        NSString *uniqueId = [[temporary objectAtIndex:self.selectedCell-1] valueForKey:@"uniqueId"];
-        [self startChangeChannel:uniqueId];
-        self.selectedCell -= 1;
+    if (self.isInListMode == NO) {
+        if (self.currentPose.type == TLMPoseTypeWaveIn) {
+            self.isRewinding = YES;
+            [self sendRewind];
+        } else {
+            AppDelegate *delegate = [UIApplication sharedApplication].delegate;
+            NSArray *temporary = [[NSArray alloc]init];
+            temporary = [delegate.playInfo valueForKey:@"updates"];
+            NSString *uniqueId = [[temporary objectAtIndex:self.selectedCell-1] valueForKey:@"uniqueId"];
+            [self startChangeChannel:uniqueId];
+            self.selectedCell -= 1;
+        }
     }
 }
 
@@ -352,16 +387,19 @@
 }
 
 - (void)startFastForward:(id) sender {
-    if (self.currentPose.type == TLMPoseTypeWaveOut) {
-        self.isFastForwarding = YES;
-        [self sendFastforward];
-    } else {
-        AppDelegate *delegate = [UIApplication sharedApplication].delegate;
-        NSArray *temporary = [[NSArray alloc]init];
-        temporary = [delegate.playInfo valueForKey:@"updates"];
-        NSString *uniqueId = [[temporary objectAtIndex:self.selectedCell+1] valueForKey:@"uniqueId"];
-        [self startChangeChannel:uniqueId];
-        self.selectedCell += 1;
+    if (self.isInListMode == NO) {
+        if (self.currentPose.type == TLMPoseTypeWaveOut) {
+            self.isFastForwarding = YES;
+            [self sendFastforward];
+        } else {
+            AppDelegate *delegate = [UIApplication sharedApplication].delegate;
+            NSArray *temporary = [[NSArray alloc]init];
+            temporary = [delegate.playInfo valueForKey:@"updates"];
+            NSString *uniqueId = [[temporary objectAtIndex:self.selectedCell+1] valueForKey:@"uniqueId"];
+            [self startChangeChannel:uniqueId];
+            self.selectedCell += 1;
+        }
+
     }
 }
 
@@ -388,6 +426,29 @@
     }];
     
     [startOperation start];
+}
+
+- (void)verifyState {
+    NSURL *get = [NSURL URLWithString:@"http://172.16.2.109:8080/tv/getTunedPrivate"];
+    NSURLRequest *getRequest = [NSURLRequest requestWithURL:get];
+    AFHTTPRequestOperation *getOperation = [[AFHTTPRequestOperation alloc]initWithRequest:getRequest];
+    
+    getOperation.responseSerializer = [AFJSONResponseSerializer serializer];
+    
+    [getOperation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
+        NSString *title = [responseObject valueForKey:@"uniqueId"];
+        if (self.isInListMode && !(title == self.currentTitlePlaying)) {
+            self.isInListMode = NO;
+        }
+        
+        
+    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+        
+        NSLog(@"Error Retrieving Weather");
+        
+    }];
+    
+    [getOperation start];
 }
 
 #pragma mark TableView Delegates
